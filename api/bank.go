@@ -23,7 +23,8 @@ func NewBankServer() *BankServer {
 
 }
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("{}")
+	a:=NewAccount("Jack","Black")
+	json.NewEncoder(w).Encode(a)
 }
 func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("{}")
