@@ -7,9 +7,10 @@ import (
 
 type BankServer struct {
 	http.Handler
+	store Storage
 }
 
-func NewBankServer() *BankServer {
+func NewBankServer(store Storage) *BankServer {
 	b := new(BankServer)
 	router := http.NewServeMux()
 	router.Handle("/create", http.HandlerFunc(b.createAccountHandler))
@@ -19,14 +20,16 @@ func NewBankServer() *BankServer {
 	router.Handle("/transfer", http.HandlerFunc(b.transferBalanceHandler))
 
 	b.Handler = router
+	b.store = store
 	return b
 
 }
 
 const jsonContentType = "application/json"
+
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type",jsonContentType)
-	a:=NewAccount("Jack","Black")
+	w.Header().Set("content-type", jsonContentType)
+	a := NewAccount("Jack", "Black")
 	json.NewEncoder(w).Encode(a)
 }
 func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
