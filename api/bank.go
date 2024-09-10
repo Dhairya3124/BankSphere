@@ -22,7 +22,10 @@ func NewBankServer() *BankServer {
 	return b
 
 }
+
+const jsonContentType = "application/json"
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type",jsonContentType)
 	a:=NewAccount("Jack","Black")
 	json.NewEncoder(w).Encode(a)
 }
