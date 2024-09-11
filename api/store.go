@@ -43,7 +43,23 @@ func NewStorage() (*PostgresStore, error) {
 	}, nil
 
 }
-func (s *PostgresStore) CreateAccount(*Account) error {
+func (s *PostgresStore) CreateAccount(account *Account) error {
+	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS Accounts(
+	id INTEGER PRIMARY KEY,
+	firstname VARCHAR(50),
+	lastname VARCHAR(50),
+	account_number INTEGER,
+	balance INTEGER
+	)`)
+	if err != nil {
+		return err
+	}
+	query := `INSERT INTO Accounts(id,firstname,lastname,account_number,balance) VALUES($1, $2, $3, $4, $5)`
+	_, queryError := s.db.Exec(query, account.ID, account.FirstName, account.LastName, account.AccountNumber, account.Balance)
+	if queryError != nil {
+		return queryError
+	}
+
 	return nil
 }
 func (s *PostgresStore) UpdateAccount(*Account) error {

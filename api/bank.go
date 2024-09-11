@@ -30,6 +30,8 @@ const jsonContentType = "application/json"
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", jsonContentType)
 	a := NewAccount("Jack", "Black")
+	b.store.CreateAccount(a)
+
 	json.NewEncoder(w).Encode(a)
 }
 func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
