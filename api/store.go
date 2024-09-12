@@ -75,10 +75,10 @@ func (s *PostgresStore) GetAccountById(Id string) (*Account, error) {
 	account := &Account{}
 	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
 	if err != nil {
-			if err == sql.ErrNoRows {
-					return nil, nil // No account found with the given Id
-			}
-			return nil, err
+		if err == sql.ErrNoRows {
+			return nil, nil // No account found with the given Id
+		}
+		return nil, err
 	}
 
 	return account, nil
