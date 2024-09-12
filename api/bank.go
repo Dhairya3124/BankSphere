@@ -35,7 +35,8 @@ func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(a)
 }
 func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("{}")
+	a,_:= b.store.GetAccountById("659") //Task: Remove the hardcoded value
+	json.NewEncoder(w).Encode(a)
 }
 func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("{}")
