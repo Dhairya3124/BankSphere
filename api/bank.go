@@ -39,6 +39,7 @@ func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/get/")
 	a, err := b.store.GetAccountById(id)
 	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(err)
 	} else {
 		json.NewEncoder(w).Encode(a)
