@@ -13,7 +13,7 @@ type PostgresStore struct {
 type Storage interface {
 	CreateAccount(*Account) error
 	UpdateAccount(*Account) error
-	DeleteAccount(*Account) error
+	DeleteAccountById(Id string) error
 	GetAccountById(Id string) (*Account, error)
 }
 
@@ -63,9 +63,11 @@ func (s *PostgresStore) CreateAccount(account *Account) error {
 	return nil
 }
 func (s *PostgresStore) UpdateAccount(*Account) error {
-	return nil
+		return nil
 }
-func (s *PostgresStore) DeleteAccount(*Account) error {
+func (s *PostgresStore) DeleteAccountById(Id string) error {
+	query:=`DELETE FROM Accounts WHERE id = $1`
+	s.db.Exec(query,Id)
 	return nil
 }
 func (s *PostgresStore) GetAccountById(Id string) (*Account, error) {

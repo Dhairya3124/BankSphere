@@ -17,7 +17,7 @@ func NewBankServer(store Storage) *BankServer {
 	router.Handle("/create", http.HandlerFunc(b.createAccountHandler))
 	router.Handle("/get/", http.HandlerFunc(b.getAccountHandler))
 	router.Handle("/update", http.HandlerFunc(b.updateAccountHandler))
-	router.Handle("/delete", http.HandlerFunc(b.deleteAccountHandler))
+	router.Handle("/delete/", http.HandlerFunc(b.deleteAccountHandler))
 	router.Handle("/transfer", http.HandlerFunc(b.transferBalanceHandler))
 
 	b.Handler = router
@@ -47,7 +47,12 @@ func (b *BankServer) getAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("{}")
+	id := strings.TrimPrefix(r.URL.Path, "/delete/")
+	err := b.store.DeleteAccountById(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(err)
+	} 
 }
 func (b *BankServer) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("{}")
