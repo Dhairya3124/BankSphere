@@ -30,3 +30,7 @@ type CreateAccountRequest struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 }
+type LogMessage struct{
+	Message string `json:"msg"`
+
+}

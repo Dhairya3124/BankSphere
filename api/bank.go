@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 )
 
 type BankServer struct {
@@ -16,7 +18,6 @@ func NewBankServer(store Storage) *BankServer {
 	router.Handle("/account", http.HandlerFunc(b.handleAccount))
 	router.Handle("/account/{id}", http.HandlerFunc(b.handleAccountById))
 	router.Handle("/update", http.HandlerFunc(b.updateAccountHandler))
-	router.Handle("/delete/", http.HandlerFunc(b.deleteAccountHandler))
 	router.Handle("/transfer", http.HandlerFunc(b.transferBalanceHandler))
 
 	b.Handler = router
@@ -67,7 +68,10 @@ func (b *BankServer) getAllAccountsHandler(w http.ResponseWriter, r *http.Reques
 
 }
 func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Request) error {
-	id := r.PathValue("id")
+	id,err := getID(r)
+	if err != nil {
+		return err
+	}
 	account, err := b.store.GetAccountById(id)
 	if err != nil {
 		return err
@@ -75,13 +79,17 @@ func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Reques
 	return WriteJSON(w, 200, account)
 
 }
-func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	err := b.store.DeleteAccountById(id)
+func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) error{
+	id,err := getID(r)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(err)
+		return err
 	}
+	err = b.store.DeleteAccountById(id)
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w,200,logger("Account Deleted")) 
+
 }
 func (b *BankServer) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("{}")
@@ -93,4 +101,17 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
+}
+func getID(r *http.Request)(int,error){
+	idStr:=r.PathValue("id")
+	id,err:=strconv.Atoi(idStr)
+	if err!=nil{
+		return id,fmt.Errorf("invalid id given %s",idStr)
+	}
+	return id,nil
+}
+func logger(msg string)*LogMessage{
+	logs:=new(LogMessage)
+	logs.Message = msg
+	return logs
 }
