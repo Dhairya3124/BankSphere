@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 )
 
 type BankServer struct {
@@ -40,6 +39,8 @@ func (b *BankServer) handleAccountById(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		b.getAccountByIdHandler(w, r)
+	case http.MethodDelete:
+		b.deleteAccountHandler(w, r)
 
 	}
 }
@@ -75,7 +76,7 @@ func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Reques
 
 }
 func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/delete/")
+	id := r.PathValue("id")
 	err := b.store.DeleteAccountById(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
