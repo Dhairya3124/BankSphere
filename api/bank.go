@@ -15,7 +15,7 @@ func NewBankServer(store Storage) *BankServer {
 	b := new(BankServer)
 	router := http.NewServeMux()
 	router.Handle("/account", http.HandlerFunc(b.handleAccount))
-	router.Handle("/get/", http.HandlerFunc(b.getAccountByIdHandler))
+	router.Handle("/account/{id}", http.HandlerFunc(b.handleAccountById))
 	router.Handle("/update", http.HandlerFunc(b.updateAccountHandler))
 	router.Handle("/delete/", http.HandlerFunc(b.deleteAccountHandler))
 	router.Handle("/transfer", http.HandlerFunc(b.transferBalanceHandler))
@@ -35,6 +35,13 @@ func (b *BankServer) handleAccount(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+}
+func (b *BankServer) handleAccountById(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		b.getAccountByIdHandler(w, r)
+
+	}
 }
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) error {
 
@@ -58,15 +65,13 @@ func (b *BankServer) getAllAccountsHandler(w http.ResponseWriter, r *http.Reques
 	return WriteJSON(w, 200, accounts)
 
 }
-func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/get/")
-	a, err := b.store.GetAccountById(id)
+func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+	account, err := b.store.GetAccountById(id)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(err)
-	} else {
-		json.NewEncoder(w).Encode(a)
+		return err
 	}
+	return WriteJSON(w, 200, account)
 
 }
 func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) {

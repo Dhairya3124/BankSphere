@@ -80,7 +80,7 @@ func (s *PostgresStore) GetAllAccounts() ([]*Account, error) {
 
 	accounts := []*Account{}
 	for rows.Next() {
-		account:=new(Account)
+		account := new(Account)
 		err := rows.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
 		if err != nil {
 			return nil, err
