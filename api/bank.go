@@ -49,11 +49,11 @@ func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request
 
 	accountRequest := new(CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(accountRequest); err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	account, err := NewAccount(accountRequest.FirstName, accountRequest.LastName)
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	b.store.CreateAccount(account)
 	return WriteJSON(w, 200, account)
@@ -62,33 +62,33 @@ func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request
 func (b *BankServer) getAllAccountsHandler(w http.ResponseWriter, r *http.Request) error {
 	accounts, err := b.store.GetAllAccounts()
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	return WriteJSON(w, 200, accounts)
 
 }
 func (b *BankServer) getAccountByIdHandler(w http.ResponseWriter, r *http.Request) error {
-	id,err := getID(r)
+	id, err := getID(r)
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	account, err := b.store.GetAccountById(id)
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	return WriteJSON(w, 200, account)
 
 }
-func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) error{
-	id,err := getID(r)
+func (b *BankServer) deleteAccountHandler(w http.ResponseWriter, r *http.Request) error {
+	id, err := getID(r)
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
 	err = b.store.DeleteAccountById(id)
 	if err != nil {
-		return err
+		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
-	return WriteJSON(w,200,logger("Account Deleted")) 
+	return WriteJSON(w, 200, logger("Account Deleted"))
 
 }
 func (b *BankServer) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -102,16 +102,16 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 }
-func getID(r *http.Request)(int,error){
-	idStr:=r.PathValue("id")
-	id,err:=strconv.Atoi(idStr)
-	if err!=nil{
-		return id,fmt.Errorf("invalid id given %s",idStr)
+func getID(r *http.Request) (int, error) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return id, fmt.Errorf("invalid id given %s", idStr)
 	}
-	return id,nil
+	return id, nil
 }
-func logger(msg string)*LogMessage{
-	logs:=new(LogMessage)
+func logger(msg string) *LogMessage {
+	logs := new(LogMessage)
 	logs.Message = msg
 	return logs
 }

@@ -67,10 +67,15 @@ func (s *PostgresStore) UpdateAccount(*Account) error {
 	return nil
 }
 func (s *PostgresStore) DeleteAccountById(Id int) error {
-	query := `DELETE FROM Accounts WHERE id = $1`
-	_,err:=s.db.Exec(query, Id)
-	if err!=nil{
-		return err
+	query := `SELECT id FROM Accounts WHERE id = $1`
+	row, rowError := s.db.Query(query, Id)
+	if !row.Next() || rowError != nil {
+		return fmt.Errorf("account not found with id as %d", Id)
+	}
+	query = `DELETE FROM Accounts WHERE id = $1`
+	_, err := s.db.Exec(query, Id)
+	if err != nil {
+		return fmt.Errorf("account not found with id as %d", Id)
 	}
 	return nil
 }
@@ -100,10 +105,8 @@ func (s *PostgresStore) GetAccountById(Id int) (*Account, error) {
 	account := &Account{}
 	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // No account found with the given Id
-		}
-		return nil, err
+		return nil, fmt.Errorf("account not found with id as %d", Id) // No account found with the given Id
+
 	}
 
 	return account, nil
