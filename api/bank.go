@@ -18,7 +18,7 @@ func NewBankServer(store Storage) *BankServer {
 	router.Handle("/account", http.HandlerFunc(b.handleAccount))
 	router.Handle("/account/{id}", http.HandlerFunc(b.handleAccountById))
 	router.Handle("/update", http.HandlerFunc(b.handleBalanceUpdate))
-	router.Handle("/transfer", http.HandlerFunc(b.transferBalanceHandler))
+	router.Handle("/transfer", http.HandlerFunc(b.handleBalanceTransfer))
 
 	b.Handler = router
 	b.store = store
@@ -50,6 +50,12 @@ func (b *BankServer) handleBalanceUpdate(w http.ResponseWriter, r *http.Request)
 	case http.MethodPost:
 		b.updateAccountBalanceHandler(w, r)
 
+	}
+}
+func (b *BankServer) handleBalanceTransfer(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		b.transferBalanceHandler(w, r)
 	}
 }
 func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request) error {
@@ -110,8 +116,18 @@ func (b *BankServer) updateAccountBalanceHandler(w http.ResponseWriter, r *http.
 	}
 	return WriteJSON(w, 200, logger("Account Updated"))
 }
-func (b *BankServer) transferBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("{}")
+func (b *BankServer) transferBalanceHandler(w http.ResponseWriter, r *http.Request) error {
+	transferBalanceRequest := new(TransferBalanceRequest)
+	if err := json.NewDecoder(r.Body).Decode(transferBalanceRequest); err != nil {
+		return WriteJSON(w, 400, logger(string(err.Error())))
+	}
+	defer r.Body.Close()
+	err := b.store.TransferBalancetoAccounts(transferBalanceRequest.SourceAccountNumber, transferBalanceRequest.DestinationAccountNumber, transferBalanceRequest.Amount)
+	if err != nil {
+		return WriteJSON(w, 400, logger(string(err.Error())))
+	}
+	return WriteJSON(w, 200, logger("Balance Transferred"))
+
 }
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")

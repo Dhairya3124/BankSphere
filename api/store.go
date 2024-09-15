@@ -16,6 +16,7 @@ type Storage interface {
 	DeleteAccountById(Id int) error
 	GetAllAccounts() ([]*Account, error)
 	GetAccountById(Id int) (*Account, error)
+	TransferBalancetoAccounts(sourceAccountNumber, destinationAccountNumber, amount int64) error
 }
 
 const (
@@ -69,7 +70,7 @@ func (s *PostgresStore) UpdateAccountBalance(accountNumber, amount int64) error 
 	if !row.Next() || rowError != nil {
 		return fmt.Errorf("account not found with account number as %d", accountNumber)
 	}
-	query = `UPDATE Accounts SET balance = $2 WHERE account_number = $1`
+	query = `UPDATE Accounts SET balance = balance + $2 WHERE account_number = $1`
 	_, err := s.db.Exec(query, accountNumber, amount)
 	if err != nil {
 		return err
@@ -120,4 +121,55 @@ func (s *PostgresStore) GetAccountById(Id int) (*Account, error) {
 	}
 
 	return account, nil
+}
+func (s *PostgresStore) TransferBalancetoAccounts(sourceAccountNumber, destinationAccountNumber int64, amount int64) error {
+	query := `SELECT id FROM Accounts WHERE account_number = $1`
+	row := s.db.QueryRow(query, destinationAccountNumber)
+	var destAccountId int
+	err := row.Scan(&destAccountId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("destination account not found with account number %d", destinationAccountNumber)
+		}
+		return fmt.Errorf("error querying destination account: %v", err)
+	}
+
+	query = `SELECT balance FROM Accounts WHERE account_number = $1`
+	row = s.db.QueryRow(query, sourceAccountNumber)
+	var balance int64
+	err = row.Scan(&balance)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("source account not found with account number %d", sourceAccountNumber)
+		}
+		return fmt.Errorf("error querying source account balance: %v", err)
+	}
+
+	if balance < amount {
+		return fmt.Errorf("insufficient balance: current balance is %d, but %d is required", balance, amount)
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("error beginning transaction: %v", err)
+	}
+
+	_, err = tx.Exec(`UPDATE Accounts SET balance = balance - $1 WHERE account_number = $2`, amount, sourceAccountNumber)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error updating source account balance: %v", err)
+	}
+
+	_, err = tx.Exec(`UPDATE Accounts SET balance = balance + $1 WHERE account_number = $2`, amount, destinationAccountNumber)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error updating destination account balance: %v", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("error committing transaction: %v", err)
+	}
+
+	return nil
 }

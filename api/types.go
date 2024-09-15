@@ -37,3 +37,8 @@ type UpdateBalanceRequest struct {
 	AccountNumber int64 `json:"accountnumber"`
 	Amount        int64 `json:"amount"`
 }
+type TransferBalanceRequest struct {
+	SourceAccountNumber      int64 `json:"sourceAccount"`
+	DestinationAccountNumber int64 `json:"destinationAccount"`
+	Amount                   int64 `json:"amount"`
+}
