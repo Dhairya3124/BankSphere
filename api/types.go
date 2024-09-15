@@ -33,3 +33,7 @@ type CreateAccountRequest struct {
 type LogMessage struct {
 	Message string `json:"msg"`
 }
+type UpdateBalanceRequest struct {
+	AccountNumber int64 `json:"accountnumber"`
+	Amount        int64 `json:"amount"`
+}
