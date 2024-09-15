@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	// jwt "github.com/golang-jwt/jwt/v5"
+
 )
 
 type BankServer struct {
@@ -16,7 +18,7 @@ func NewBankServer(store Storage) *BankServer {
 	b := new(BankServer)
 	router := http.NewServeMux()
 	router.Handle("/account", http.HandlerFunc(b.handleAccount))
-	router.Handle("/account/{id}", http.HandlerFunc(b.handleAccountById))
+	router.Handle("/account/{id}", withJWTAuth(http.HandlerFunc(b.handleAccountById)))
 	router.Handle("/update", http.HandlerFunc(b.handleBalanceUpdate))
 	router.Handle("/transfer", http.HandlerFunc(b.handleBalanceTransfer))
 
@@ -146,4 +148,10 @@ func logger(msg string) *LogMessage {
 	logs := new(LogMessage)
 	logs.Message = msg
 	return logs
+}
+func withJWTAuth(handlerFunc http.HandlerFunc)http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("calling JWT")
+		handlerFunc(w,r)
+	}
 }
