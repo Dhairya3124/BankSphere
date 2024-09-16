@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
-	// jwt "github.com/golang-jwt/jwt/v5"
 
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 type BankServer struct {
@@ -154,4 +155,15 @@ func withJWTAuth(handlerFunc http.HandlerFunc)http.HandlerFunc{
 		fmt.Println("calling JWT")
 		handlerFunc(w,r)
 	}
+}
+func validateJWT(tokenString string) (*jwt.Token, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(secret), nil
+	})
 }
