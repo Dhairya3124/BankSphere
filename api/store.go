@@ -16,6 +16,7 @@ type Storage interface {
 	DeleteAccountById(Id int) error
 	GetAllAccounts() ([]*Account, error)
 	GetAccountById(Id int) (*Account, error)
+	GetAccountByAccountNumber(AccountNumber int64)(*Account,error)
 	TransferBalancetoAccounts(sourceAccountNumber, destinationAccountNumber, amount int64) error
 }
 
@@ -48,16 +49,17 @@ func NewStorage() (*PostgresStore, error) {
 func (s *PostgresStore) CreateAccount(account *Account) error {
 	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS Accounts(
 	id INTEGER PRIMARY KEY,
-	firstname VARCHAR(50),
-	lastname VARCHAR(50),
+	firstname VARCHAR(100),
+	lastname VARCHAR(100),
 	account_number INTEGER,
-	balance INTEGER
+	balance INTEGER,
+	encrypted_password VARCHAR(100)
 	)`)
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO Accounts(id,firstname,lastname,account_number,balance) VALUES($1, $2, $3, $4, $5)`
-	_, queryError := s.db.Exec(query, account.ID, account.FirstName, account.LastName, account.AccountNumber, account.Balance)
+	query := `INSERT INTO Accounts(id,firstname,lastname,account_number,balance,encrypted_password) VALUES($1, $2, $3, $4, $5, $6)`
+	_, queryError := s.db.Exec(query, account.ID, account.FirstName, account.LastName, account.AccountNumber, account.Balance,account.EncryptedPassword)
 	if queryError != nil {
 		return queryError
 	}
@@ -117,6 +119,19 @@ func (s *PostgresStore) GetAccountById(Id int) (*Account, error) {
 	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
 	if err != nil {
 		return nil, fmt.Errorf("account not found with id as %d", Id) // No account found with the given Id
+
+	}
+
+	return account, nil
+}
+func (s *PostgresStore)GetAccountByAccountNumber(AccountNumber int64)(*Account,error){
+	query := `SELECT id, firstname, lastname, account_number, balance FROM Accounts WHERE account_number = $1`
+	row := s.db.QueryRow(query, AccountNumber)
+
+	account := &Account{}
+	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
+	if err != nil {
+		return nil, fmt.Errorf("account not found with account number as %d", AccountNumber) // No account found with the given Id
 
 	}
 

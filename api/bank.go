@@ -19,9 +19,10 @@ func NewBankServer(store Storage) *BankServer {
 	b := new(BankServer)
 	router := http.NewServeMux()
 	router.Handle("/account", http.HandlerFunc(b.handleAccount))
-	router.Handle("/account/{id}", withJWTAuth(http.HandlerFunc(b.handleAccountById)))
+	router.Handle("/account/{id}", withJWTAuth(http.HandlerFunc(b.handleAccountById),store))
 	router.Handle("/update", http.HandlerFunc(b.handleBalanceUpdate))
 	router.Handle("/transfer", http.HandlerFunc(b.handleBalanceTransfer))
+	router.HandleFunc("/login", http.HandlerFunc(b.handleLoginAccount))
 
 	b.Handler = router
 	b.store = store
@@ -29,6 +30,11 @@ func NewBankServer(store Storage) *BankServer {
 
 }
 
+func (b *BankServer) handleLoginAccount(w http.ResponseWriter, r *http.Request)  {
+	if r.Method == "POST" {
+		b.handleLogin(w,r)
+	}
+}
 func (b *BankServer) handleAccount(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -67,11 +73,14 @@ func (b *BankServer) createAccountHandler(w http.ResponseWriter, r *http.Request
 	if err := json.NewDecoder(r.Body).Decode(accountRequest); err != nil {
 		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
-	account, err := NewAccount(accountRequest.FirstName, accountRequest.LastName)
+	account, err := NewAccount(accountRequest.FirstName, accountRequest.LastName,accountRequest.Password)
 	if err != nil {
 		return WriteJSON(w, 400, logger(string(err.Error())))
 	}
-	b.store.CreateAccount(account)
+	err = b.store.CreateAccount(account)
+	if err != nil {
+		return WriteJSON(w,400,logger(string(err.Error())))
+	}
 	return WriteJSON(w, 200, account)
 }
 
@@ -132,6 +141,35 @@ func (b *BankServer) transferBalanceHandler(w http.ResponseWriter, r *http.Reque
 	return WriteJSON(w, 200, logger("Balance Transferred"))
 
 }
+
+func (b *BankServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return WriteJSON(w,400,"invalid Body")
+	}
+
+	account, err := b.store.GetAccountByAccountNumber(int64(req.AccountNumber))
+	if err != nil {
+		return WriteJSON(w,400,"invalid AccountNumber")
+	}
+
+	if !account.ValidPassword(req.Password) {
+		return WriteJSON(w,400,"invalid password")
+	}
+
+	token, err := createJWT(account)
+	if err != nil {
+		return WriteJSON(w,400,"wrong password")
+	}
+
+	resp := LoginResponse{
+		Token:  token,
+		AccountNumber: account.AccountNumber,
+	}
+
+	return WriteJSON(w, http.StatusOK, resp)
+}
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -150,12 +188,56 @@ func logger(msg string) *LogMessage {
 	logs.Message = msg
 	return logs
 }
-func withJWTAuth(handlerFunc http.HandlerFunc)http.HandlerFunc{
+func createJWT(account *Account) (string, error) {
+	claims := &jwt.MapClaims{
+		"expiresAt":     15000,
+		"accountNumber": account.AccountNumber,
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(secret))
+}
+
+func permissionDenied(w http.ResponseWriter) {
+	WriteJSON(w, http.StatusForbidden,  logger("permission denied"))
+}
+
+
+func withJWTAuth(handlerFunc http.HandlerFunc, s Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("calling JWT")
-		handlerFunc(w,r)
+		tokenString := r.Header.Get("x-jwt-token")
+		token, err := validateJWT(tokenString)
+		if err != nil {
+			permissionDenied(w)
+			return
+		}
+		if !token.Valid {
+			permissionDenied(w)
+			return
+		}
+		userID, err := getID(r)
+		if err != nil {
+			permissionDenied(w)
+			return
+		}
+		account, err := s.GetAccountById(userID)
+		if err != nil {
+			permissionDenied(w)
+			return
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+		if account.AccountNumber != int64(claims["accountNumber"].(float64)) {
+			permissionDenied(w)
+			return
+		}
+
+		handlerFunc(w, r)
 	}
 }
+
 func validateJWT(tokenString string) (*jwt.Token, error) {
 	secret := os.Getenv("JWT_SECRET")
 
