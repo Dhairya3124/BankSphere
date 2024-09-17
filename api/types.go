@@ -60,5 +60,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 func (a *Account) ValidPassword(pw string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(a.EncryptedPassword), []byte(pw)) == nil
+	fmt.Println(a.EncryptedPassword,pw)
+	err:= bcrypt.CompareHashAndPassword([]byte(a.EncryptedPassword), []byte(pw)) 
+	return err==nil
 }

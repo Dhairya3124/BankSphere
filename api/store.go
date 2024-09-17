@@ -125,11 +125,11 @@ func (s *PostgresStore) GetAccountById(Id int) (*Account, error) {
 	return account, nil
 }
 func (s *PostgresStore)GetAccountByAccountNumber(AccountNumber int64)(*Account,error){
-	query := `SELECT id, firstname, lastname, account_number, balance FROM Accounts WHERE account_number = $1`
+	query := `SELECT id, firstname, lastname, account_number, balance,encrypted_password FROM Accounts WHERE account_number = $1`
 	row := s.db.QueryRow(query, AccountNumber)
 
 	account := &Account{}
-	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance)
+	err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.AccountNumber, &account.Balance,&account.EncryptedPassword)
 	if err != nil {
 		return nil, fmt.Errorf("account not found with account number as %d", AccountNumber) // No account found with the given Id
 

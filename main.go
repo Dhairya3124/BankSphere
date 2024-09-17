@@ -14,4 +14,5 @@ func main() {
 	}
 	server := api.NewBankServer(store)
 	log.Fatal(http.ListenAndServe(":5000", server))
+	
 }
