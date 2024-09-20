@@ -1,0 +1,2 @@
+#BankSphere
+BankSphere is a simple banking system that allows users to create accounts, deposit and withdraw money, and view their account balance. The system is implemented in Go and uses a PostgreSQL database to store account information.
